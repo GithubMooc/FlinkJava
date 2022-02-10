@@ -13,7 +13,7 @@ import java.util.ArrayList;
  * @Date 2022/2/10
  * @Time 00:00
  * @Name FlinkJava
- * 
+ *
  *  自定义Sink写出到MySQL
  */
 public class Demo04 {
