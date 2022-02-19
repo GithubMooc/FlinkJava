@@ -5,26 +5,37 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.cep.*;
 import org.apache.flink.cep.pattern.Pattern;
-import org.apache.flink.cep.pattern.conditions.IterativeCondition;
+import org.apache.flink.cep.pattern.conditions.SimpleCondition;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.time.Duration;
-import java.util.*;
 
 /**
  * @Author Master
  * @Date 2022/2/19
- * @Time 02:13
+ * @Time 02:22
  * @Name FlinkJava
  * <p>
- * 单个模式：条件
- * 对每个模式你可以指定一个条件来决定一个进来的事件是否被接受进入这个模式，例如前面用到的where就是一种条件
- * <p>
- * 单个模式：条件： 迭代条件
- * 这是最普遍的条件类型。使用它可以指定一个基于前面已经被接受的事件的属性或者它们的一个子集的统计数据来决定是否接受时间序列的条件。
+ * 循环模式的贪婪性
+ * 在组合模式情况下, 对次数的处理尽快能获取最多个的那个次数, 就是贪婪!当一个事件同时满足两个模式的时候起作用.
+ *
+ * 数据:
+ * sensor_1,1,10
+ * sensor_1,2,20
+ * sensor_1,3,30
+ * sensor_2,4,30
+ * sensor_1,4,400
+ * sensor_2,5,50
+ * sensor_2,6,60
+ *
+ * 结果:
+ * {start=[WaterSensor(id=sensor_1, ts=1, vc=10), WaterSensor(id=sensor_1, ts=2, vc=20), WaterSensor(id=sensor_1, ts=3, vc=30)], end=[WaterSensor(id=sensor_2, ts=4, vc=30)]}
+ *
+ * {start=[WaterSensor(id=sensor_1, ts=2, vc=20), WaterSensor(id=sensor_1, ts=3, vc=30)], end=[WaterSensor(id=sensor_2, ts=4, vc=30)]}
+ *
  */
-public class Demo06 {
+public class Demo16 {
     public static void main(String[] args) {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
@@ -46,10 +57,17 @@ public class Demo06 {
         // 1. 定义模式
         Pattern<WaterSensor, WaterSensor> pattern = Pattern
                 .<WaterSensor>begin("start")
-                .where(new IterativeCondition<WaterSensor>() {
+                .where(new SimpleCondition<WaterSensor>() {
                     @Override
-                    public boolean filter(WaterSensor value, Context<WaterSensor> ctx) throws Exception {
+                    public boolean filter(WaterSensor value) throws Exception {
                         return "sensor_1".equals(value.getId());
+                    }
+                }).times(2, 3).greedy()
+                .next("end")
+                .where(new SimpleCondition<WaterSensor>() {
+                    @Override
+                    public boolean filter(WaterSensor value) throws Exception {
+                        return value.getVc() == 30;
                     }
                 });
 
@@ -57,12 +75,7 @@ public class Demo06 {
         PatternStream<WaterSensor> waterSensorPS = CEP.pattern(waterSensorStream, pattern);
         // 3. 获取匹配到的结果
         waterSensorPS
-                .select(new PatternSelectFunction<WaterSensor, String>() {
-                    @Override
-                    public String select(Map<String, List<WaterSensor>> pattern) throws Exception {
-                        return pattern.toString();
-                    }
-                })
+                .select(pattern1 -> pattern1.toString())
                 .print();
 
         try {

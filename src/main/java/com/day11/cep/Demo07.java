@@ -5,26 +5,25 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.cep.*;
 import org.apache.flink.cep.pattern.Pattern;
-import org.apache.flink.cep.pattern.conditions.IterativeCondition;
+import org.apache.flink.cep.pattern.conditions.SimpleCondition;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.time.Duration;
-import java.util.*;
 
 /**
  * @Author Master
  * @Date 2022/2/19
- * @Time 02:13
+ * @Time 02:17
  * @Name FlinkJava
  * <p>
  * 单个模式：条件
  * 对每个模式你可以指定一个条件来决定一个进来的事件是否被接受进入这个模式，例如前面用到的where就是一种条件
  * <p>
- * 单个模式：条件： 迭代条件
- * 这是最普遍的条件类型。使用它可以指定一个基于前面已经被接受的事件的属性或者它们的一个子集的统计数据来决定是否接受时间序列的条件。
+ * 单个模式：条件： 简单条件
+ * 这种类型的条件扩展了前面提到的IterativeCondition类，它决定是否接受一个事件只取决于事件自身的属性。
  */
-public class Demo06 {
+public class Demo07 {
     public static void main(String[] args) {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
@@ -46,9 +45,10 @@ public class Demo06 {
         // 1. 定义模式
         Pattern<WaterSensor, WaterSensor> pattern = Pattern
                 .<WaterSensor>begin("start")
-                .where(new IterativeCondition<WaterSensor>() {
+                .where(new SimpleCondition<WaterSensor>() {
                     @Override
-                    public boolean filter(WaterSensor value, Context<WaterSensor> ctx) throws Exception {
+                    public boolean filter(WaterSensor value) throws Exception {
+                        System.out.println(value);
                         return "sensor_1".equals(value.getId());
                     }
                 });
@@ -57,12 +57,7 @@ public class Demo06 {
         PatternStream<WaterSensor> waterSensorPS = CEP.pattern(waterSensorStream, pattern);
         // 3. 获取匹配到的结果
         waterSensorPS
-                .select(new PatternSelectFunction<WaterSensor, String>() {
-                    @Override
-                    public String select(Map<String, List<WaterSensor>> pattern) throws Exception {
-                        return pattern.toString();
-                    }
-                })
+                .select(pattern1 -> pattern1.toString())
                 .print();
 
         try {
