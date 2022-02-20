@@ -2,6 +2,7 @@ package com.day01.introduction;
 
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.*;
 import org.apache.flink.streaming.api.datastream.*;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
@@ -13,14 +14,17 @@ import java.util.Arrays;
  * @Date 2022/2/9
  * @Time 22:37
  * @Name FlinkJava
- *
- * 流处理WordCount
- * 无界流
  */
-public class Demo03 {
+
+public class Demo04 {
     public static void main(String[] args) throws Exception {
+        //使用本地模式并开启WebUI
+        Configuration conf = new Configuration();
+        //端口绑定给定一个范围，由小到大尝试使用端口，如果被占用则用下一个端口,访问地址：http://localhost/8081
+        conf.setString(RestOptions.BIND_PORT,"8081-8089");
         // 1. 创建流式执行环境
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+
         // 2. 读取文件
         DataStreamSource<String> lineDSS = env.socketTextStream("hadoop102", 9999);
         // 3. 转换数据格式

@@ -8,24 +8,22 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
  * @Date 2022/2/9
  * @Time 23:01
  * @Name FlinkJava
- *
+ * <p>
  * transform:map
  * 匿名内部类对象
  */
 public class Demo01 {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
         env
                 .fromElements(1, 2, 3, 4, 5)
                 .map(new MapFunction<Integer, Integer>() {
                     @Override
-                    public Integer map(Integer value) throws Exception {
-                        return value * value;
+                    public Integer map(Integer a) {
+                        return a * a;
                     }
                 })
                 .print();
-
         env.execute();
     }
 }
